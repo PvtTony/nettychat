@@ -2,7 +2,7 @@ package me.songt.nettychat.server;
 
 import me.songt.nettychat.server.netty.ChatServer;
 
-public class MainServer
+public class ServerApplication
 {
     public static void main(String[] args)
     {

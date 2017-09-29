@@ -57,7 +57,7 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<String>
                 ChannelId incomeId = channelHandlerContext.channel().id();
                 String nick = message.getFrom();
                 String content = message.getContent();
-                if (content.equals("Online"))
+                if (content.equals(Constants.BOARDCAST_ONLINE_CONTENT))
                 {
                     if (onlineUser.containsKey(nick))
                     {
@@ -74,7 +74,7 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<String>
                     group.writeAndFlush(Unpooled.copiedBuffer(serializedMessage, CharsetUtil.UTF_8));
 //                    channelHandlerContext.writeAndFlush(Unpooled.copiedBuffer(serializedMessage, CharsetUtil.UTF_8));
                 }
-                else if (content.equals("Offline"))
+                else if (content.equals(Constants.BOARDCAST_OFFLINE_CONTENT))
                 {
                     onlineUser.remove(nick);
                     logger.info(nick + " Offline");
@@ -86,7 +86,7 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<String>
                     group.writeAndFlush(Unpooled.copiedBuffer(serializedMessage, CharsetUtil.UTF_8));
 //                    channelHandlerContext.writeAndFlush(Unpooled.copiedBuffer(serializedMessage, CharsetUtil.UTF_8));
                 }
-                else if (content.equals("List"))
+                else if (content.equals(Constants.BOARDCAST_LIST_ONLINE_CONTENT))
                 {
                     Message userBoardcast = new Message();
                     userBoardcast.setFrom(Constants.BROADCAST_MESSAGE);

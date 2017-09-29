@@ -11,9 +11,12 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
 import me.songt.nettychat.Constants;
+import me.songt.nettychat.client.proc.SharedData;
 import me.songt.nettychat.entity.Message;
 
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.BlockingQueue;
 
 public class ChatClient
 {
@@ -23,7 +26,7 @@ public class ChatClient
     private EventLoopGroup group = new NioEventLoopGroup();
     private Channel channel;
     private ChannelFuture future;
-    private Gson gson = new Gson();
+    Gson gson = new Gson();
 
     public ChatClient(String host, int port, String nickName)
     {
@@ -32,7 +35,7 @@ public class ChatClient
         this.nickName = nickName;
     }
 
-    public ChannelFuture start() throws InterruptedException
+    public ChannelFuture start() throws InterruptedException, ConnectException
     {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group)
@@ -57,14 +60,10 @@ public class ChatClient
         group.shutdownGracefully();
     }
 
-    public ChannelFuture sendMessage(Message message)
+    public void putMessage(Message message) throws InterruptedException
     {
-        if (channel != null && channel.isActive())
-        {
-            String msgSerialized = gson.toJson(message);
-            return channel.writeAndFlush(Unpooled.copiedBuffer(msgSerialized, CharsetUtil.UTF_8));
-        }
-        return null;
+        BlockingQueue<Message> out = SharedData.getInstance().getOutgoMessageQueue();
+        out.put(message);
     }
 
     public ChannelFuture getFuture()
@@ -79,16 +78,25 @@ public class ChatClient
 
     public boolean isConnectionActive()
     {
-        return (future != null) && (channel != null) && (channel.isActive());
+        return (future != null) && (channel != null) && (channel.isOpen());
     }
 
-    public void disconnect()
+    public void offline() throws InterruptedException
     {
         Message message = new Message();
         message.setFrom(nickName);
         message.setTo(Constants.BROADCAST_MESSAGE);
-        message.setContent("Offline");
-        sendMessage(message).addListener(ChannelFutureListener.CLOSE);
+        message.setContent(Constants.BOARDCAST_OFFLINE_CONTENT);
+        channel.writeAndFlush(Unpooled.copiedBuffer(gson.toJson(message), CharsetUtil.UTF_8)).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    public void listOnlineUser() throws InterruptedException
+    {
+        Message message = new Message();
+        message.setFrom(nickName);
+        message.setTo(Constants.BROADCAST_MESSAGE);
+        message.setContent(Constants.BOARDCAST_LIST_ONLINE_CONTENT);
+        putMessage(message);
     }
 
 }

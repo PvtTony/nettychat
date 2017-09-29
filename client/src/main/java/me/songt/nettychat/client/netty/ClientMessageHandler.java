@@ -1,16 +1,15 @@
 package me.songt.nettychat.client.netty;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.CharsetUtil;
 import me.songt.nettychat.Constants;
-import me.songt.nettychat.client.SharedData;
+import me.songt.nettychat.client.proc.SharedData;
 import me.songt.nettychat.entity.Message;
 
-import java.lang.reflect.Type;
+import java.util.concurrent.BlockingQueue;
 
 public class ClientMessageHandler extends SimpleChannelInboundHandler<String>
 {
@@ -29,7 +28,7 @@ public class ClientMessageHandler extends SimpleChannelInboundHandler<String>
         Message message = new Message();
         message.setFrom(nickName);
         message.setTo(Constants.BROADCAST_MESSAGE);
-        message.setContent("Online");
+        message.setContent(Constants.BOARDCAST_ONLINE_CONTENT);
         String initMessage = gson.toJson(message);
         System.out.println(initMessage);
         ctx.writeAndFlush(Unpooled.copiedBuffer(initMessage, CharsetUtil.UTF_8));
@@ -40,27 +39,13 @@ public class ClientMessageHandler extends SimpleChannelInboundHandler<String>
     {
         if (s != null && !s.isEmpty())
         {
-            System.out.println(s);
+//            System.out.println(s);
             Message message = gson.fromJson(s, Message.class);
-            //Boardcast
-            if (message.getFrom() != null && message.getFrom().equals(Constants.BROADCAST_MESSAGE))
+            //put into income message queue.
+            if (message != null)
             {
-                if (message.getContent() != null)
-                {
-                    String content = message.getContent();
-                    Type arrayType = new TypeToken<String[]>()
-                    {
-                    }.getType();
-                    SharedData.users = gson.fromJson(content, arrayType);
-                }
-            }
-            else
-            {
-                if (message.getFrom() != null && message.getTo().equals(nickName))
-                {
-//                    SharedData.messageList.add(message);
-                    SharedData.messageQueue.put(message);
-                }
+                BlockingQueue<Message> queue = SharedData.getInstance().getIncomeMessageQueue();
+                queue.put(message);
             }
         }
     }

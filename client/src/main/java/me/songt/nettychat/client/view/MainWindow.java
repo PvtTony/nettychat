@@ -1,18 +1,18 @@
 package me.songt.nettychat.client.view;
 
-import me.songt.nettychat.Constants;
-import me.songt.nettychat.client.IncomeMsgProcessor;
-import me.songt.nettychat.client.SharedData;
 import me.songt.nettychat.client.netty.ChatClient;
+import me.songt.nettychat.client.proc.IncomeProc;
+import me.songt.nettychat.client.proc.OutgoProc;
 import me.songt.nettychat.entity.Message;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.net.ConnectException;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainWindow
+public class MainWindow implements ChatWindow
 {
     private JPanel mainPanel;
     private JButton sendBtn;
@@ -25,7 +25,9 @@ public class MainWindow
     private JSpinner portSpn;
     private JButton refreshBtn;
     private JScrollPane inboxPane;
-    private JTable mailTable;
+    private JTable inboxTable;
+    private JTable sendTable;
+    private JScrollPane sendBoxPane;
 
     private ChatClient chatClient;
 
@@ -37,59 +39,80 @@ public class MainWindow
 
     public MainWindow()
     {
+        System.out.println("Initializing...");
         sendBtn.addActionListener(e -> {
             Message message = new Message();
             message.setFrom(nickName);
             message.setTo((String) toBox.getSelectedItem());
             message.setContent(contentTxt.getText());
-            chatClient.sendMessage(message);
+            try
+            {
+                chatClient.putMessage(message);
+            } catch (InterruptedException e1)
+            {
+                e1.printStackTrace();
+            }
             contentTxt.setText("");
         });
         conBtn.addActionListener(e -> {
-            String host = hostTxt.getText();
-            int port = ((SpinnerNumberModel) spinnerModel).getNumber().intValue();
-            nickName = userNickBox.getText();
-            System.out.println(host + ":" + port);
-            chatClient = new ChatClient(host, port, nickName);
-            System.out.println("Connected.");
-            try
-            {
-                chatClient.start();
+            conBtn.setText("Connecting");
+            SwingUtilities.invokeLater(() -> {
+                connect();
+                //Not a good way but effective
+                try
+                {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e1)
+                {
+                    e1.printStackTrace();
+                }
                 if (chatClient.isConnectionActive())
                 {
+                    initExecutor();
+                    initIncomeProcessor();
+                    initOutgoProcessor();
+
+                    conBtn.setText("Connected");
                     conBtn.setEnabled(false);
                     hostTxt.setEnabled(false);
                     portSpn.setEnabled(false);
                     userNickBox.setEnabled(false);
                 }
-            } catch (InterruptedException e1)
-            {
-                e1.printStackTrace();
-            }
+                else
+                {
+                    JOptionPane.showMessageDialog(mainPanel, "Connection failed.", "Error", JOptionPane.ERROR_MESSAGE);
+                    conBtn.setText("Connect");
+                }
+            });
         });
         disconBtn.addActionListener(e -> {
             if (!conBtn.isEnabled())
             {
-
-                conBtn.setEnabled(!conBtn.isEnabled());
-                hostTxt.setEnabled(!hostTxt.isEnabled());
-                portSpn.setEnabled(!portSpn.isEnabled());
-                userNickBox.setEnabled(!userNickBox.isEnabled());
+                SwingUtilities.invokeLater(() ->
+                {
+                    try
+                    {
+                        chatClient.offline();
+                    } catch (InterruptedException e1)
+                    {
+                        e1.printStackTrace();
+                    }
+                    System.out.println("Disconnected.");
+                    conBtn.setText("Connect");
+                    conBtn.setEnabled(!conBtn.isEnabled());
+                    hostTxt.setEnabled(!hostTxt.isEnabled());
+                    portSpn.setEnabled(!portSpn.isEnabled());
+                    userNickBox.setEnabled(!userNickBox.isEnabled());
+                });
             }
         });
         refreshBtn.addActionListener(e -> {
-            Message message = new Message();
-            message.setFrom(nickName);
-            message.setTo(Constants.BROADCAST_MESSAGE);
-            message.setContent("List");
-            chatClient.sendMessage(message);
-            if (SharedData.users != null && SharedData.users.length > 0)
+            try
             {
-                if (toBox.getItemCount() > 0)
-                {
-                    toBox.removeAllItems();
-                }
-                Arrays.stream(SharedData.users).forEach(toBox::addItem);
+                chatClient.listOnlineUser();
+            } catch (InterruptedException e1)
+            {
+                e1.printStackTrace();
             }
         });
 
@@ -100,7 +123,13 @@ public class MainWindow
             }
             if (chatClient.isConnectionActive())
             {
-                chatClient.disconnect();
+                try
+                {
+                    chatClient.offline();
+                } catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
             }
             if (chatClient.getFuture() != null && chatClient.getChannel() != null)
             {
@@ -111,27 +140,95 @@ public class MainWindow
         }));
     }
 
-    public static void main(String[] args)
+    @Override
+    public JPanel getMainPanel()
     {
-        JFrame frame = new JFrame("ChatClient");
-        frame.setContentPane(new MainWindow().mainPanel);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
+        return mainPanel;
+    }
+
+    @Override
+    public void insertInboxMessageItem(Message message)
+    {
+        insertItemToTable((DefaultTableModel) inboxTable.getModel(), message);
+    }
+
+    @Override
+    public void updateOnlineUser(String[] onlineUserArr)
+    {
+        SwingUtilities.invokeLater(() ->
+        {
+            if (toBox.getItemCount() > 0)
+            {
+                toBox.removeAllItems();
+            }
+            Arrays.stream(onlineUserArr).forEach(toBox::addItem);
+        });
+    }
+
+    @Override
+    public void insertSentMessageItem(Message message)
+    {
+        insertItemToTable((DefaultTableModel) sendTable.getModel(), message);
+    }
+
+    private void insertItemToTable(DefaultTableModel model, Message message)
+    {
+        SwingUtilities.invokeLater(() ->
+        {
+            String[] msgStr = new String[3];
+            msgStr[0] = message.getFrom();
+            msgStr[1] = message.getTo();
+            msgStr[2] = message.getContent();
+            model.addRow(msgStr);
+        });
+    }
+
+    private void connect()
+    {
+        String host = hostTxt.getText();
+        int port = ((SpinnerNumberModel) spinnerModel).getNumber().intValue();
+        nickName = userNickBox.getText();
+        chatClient = new ChatClient(host, port, nickName);
+        try
+        {
+            chatClient.start();
+        } catch (InterruptedException | ConnectException e1)
+        {
+            e1.printStackTrace();
+        }
+    }
+
+    private void initExecutor()
+    {
+        executorService = Executors.newCachedThreadPool();
+    }
+
+    private void initIncomeProcessor()
+    {
+        IncomeProc consumer = new IncomeProc(chatClient, this);
+        executorService.execute(consumer);
+
+    }
+
+    private void initOutgoProcessor()
+    {
+        OutgoProc outgoProc = new OutgoProc(chatClient, this);
+        executorService.execute(outgoProc);
     }
 
     private void createUIComponents()
     {
-        // TODO: place custom component creation code here
+        System.out.println("Creating UI...");
         spinnerModel = new SpinnerNumberModel(8009, 0, 99999, 1);
         portSpn = new JSpinner(spinnerModel);
         final String[] mailHeaders = {"From", "To", "Content"};
         final String[][] mails = {{"Test", "Test", "Test"}};
         DefaultTableModel inboxTableModel = new DefaultTableModel(mails, mailHeaders);
         inboxTableModel.setRowCount(0);
-        mailTable = new JTable(inboxTableModel);
-        IncomeMsgProcessor consumer = new IncomeMsgProcessor((DefaultTableModel) mailTable.getModel());
-        executorService = Executors.newSingleThreadExecutor();
-        executorService.execute(consumer);
+        DefaultTableModel sentTableModel = new DefaultTableModel(mails, mailHeaders);
+        sentTableModel.setRowCount(0);
+        inboxTable = new JTable(inboxTableModel);
+        sendTable = new JTable(sentTableModel);
+
     }
 }
