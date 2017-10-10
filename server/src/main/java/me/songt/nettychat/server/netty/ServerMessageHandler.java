@@ -46,6 +46,8 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<String>
     {
         super.handlerRemoved(ctx);
         Channel out = ctx.channel();
+        ChannelId channelId = out.id();
+        onlineUser.remove(channelId);
         logger.info("Client " + out.remoteAddress().toString() + " disconnected.");
         group.remove(out);
     }

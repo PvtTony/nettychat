@@ -42,8 +42,7 @@ public class MainWindow implements ChatWindow
     {
         System.out.println("Initializing...");
         this.initExecutor();
-        this.initIncomeProcessor();
-        this.initOutgoProcessor();
+
         sendBtn.addActionListener(e -> {
             Message message = new Message();
             message.setFrom(nickName);
@@ -190,6 +189,8 @@ public class MainWindow implements ChatWindow
         int port = ((SpinnerNumberModel) spinnerModel).getNumber().intValue();
         nickName = userNickBox.getText();
         chatClient = new ChatClient(host, port, nickName);
+        this.initIncomeProcessor();
+        this.initOutgoProcessor();
         try
         {
             chatClient.start();

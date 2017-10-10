@@ -75,13 +75,14 @@ public class ClientMessageHandler extends SimpleChannelInboundHandler<String>
                     break;
                 case WRITER_IDLE:
                     System.out.println("Write timeout. Sending ping.");
-                    if (unRecvPongCount < MAX_UNRECV_PONG_COUNT)
+                    if (unRecvPongCount < MAX_UNRECV_PONG_COUNT && SharedData.getInstance().isOnline() && ctx.channel().isActive())
                     {
                         Message ping = new Message();
                         ping.setFrom(nickName);
                         ping.setTo(Constants.BROADCAST_MESSAGE);
                         ping.setContent(Constants.BOARDCAST_PING_CONTENT);
-                        SharedData.getInstance().getOutgoMessageQueue().put(ping);
+//                        SharedData.getInstance().getOutgoMessageQueue().put(ping);
+                        ctx.channel().writeAndFlush(Unpooled.copiedBuffer(gson.toJson(ping), CharsetUtil.UTF_8));
                         unRecvPongCount++;
                     }
                     else
