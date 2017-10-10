@@ -24,26 +24,24 @@ public class OutgoProc implements Runnable
     @Override
     public void run()
     {
-        if (chatClient != null && chatClient.isConnectionActive())
+        System.out.println("Outgo Message Processor started.");
+        BlockingQueue<Message> queue = SharedData.getInstance().getOutgoMessageQueue();
+        while (true)
         {
-            BlockingQueue<Message> queue = SharedData.getInstance().getOutgoMessageQueue();
-            while (chatClient.isConnectionActive())
+            try
             {
-                try
+                Message outMessage = queue.take();
+                if (chatClient.isConnectionActive() && outMessage != null)
                 {
-                    Message outMessage = queue.take();
-                    if (chatClient.isConnectionActive() && outMessage != null)
-                    {
-
-                        String msgSerialized = gson.toJson(outMessage);
-                        chatClient.getChannel().writeAndFlush(Unpooled.copiedBuffer(msgSerialized, CharsetUtil.UTF_8));
-                        window.insertSentMessageItem(outMessage);
-                    }
-                } catch (InterruptedException e)
-                {
-                    e.printStackTrace();
+                    String msgSerialized = gson.toJson(outMessage);
+                    chatClient.getChannel().writeAndFlush(Unpooled.copiedBuffer(msgSerialized, CharsetUtil.UTF_8));
+                    window.insertSentMessageItem(outMessage);
                 }
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
             }
         }
     }
+
 }

@@ -27,9 +27,10 @@ public class IncomeProc implements Runnable
     @Override
     public void run()
     {
+        System.out.println("Income Message Processor started.");
         try
         {
-            while (chatClient.isConnectionActive())
+            while (true)
             {
                 BlockingQueue<Message> queue = SharedData.getInstance().getIncomeMessageQueue();
                 Message message = queue.take();
@@ -40,6 +41,7 @@ public class IncomeProc implements Runnable
                     {
                     }.getType();
                     String[] onlineUserArr = gson.fromJson(content, arrayType);
+                    SharedData.getInstance().setOnline(true);
                     window.updateOnlineUser(onlineUserArr);
                 }
                 else

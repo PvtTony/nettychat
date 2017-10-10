@@ -3,6 +3,7 @@ package me.songt.nettychat.client.view;
 import me.songt.nettychat.client.netty.ChatClient;
 import me.songt.nettychat.client.proc.IncomeProc;
 import me.songt.nettychat.client.proc.OutgoProc;
+import me.songt.nettychat.client.proc.SharedData;
 import me.songt.nettychat.entity.Message;
 
 import javax.swing.*;
@@ -40,6 +41,9 @@ public class MainWindow implements ChatWindow
     public MainWindow()
     {
         System.out.println("Initializing...");
+        this.initExecutor();
+        this.initIncomeProcessor();
+        this.initOutgoProcessor();
         sendBtn.addActionListener(e -> {
             Message message = new Message();
             message.setFrom(nickName);
@@ -59,19 +63,15 @@ public class MainWindow implements ChatWindow
             SwingUtilities.invokeLater(() -> {
                 connect();
                 //Not a good way but effective
-                try
+                /*try
                 {
                     Thread.sleep(1000);
                 } catch (InterruptedException e1)
                 {
                     e1.printStackTrace();
-                }
-                if (chatClient.isConnectionActive())
+                }*/
+                if (SharedData.getInstance().checkOnlineStatus(5))
                 {
-                    initExecutor();
-                    initIncomeProcessor();
-                    initOutgoProcessor();
-
                     conBtn.setText("Connected");
                     conBtn.setEnabled(false);
                     hostTxt.setEnabled(false);
@@ -92,6 +92,7 @@ public class MainWindow implements ChatWindow
                 {
                     try
                     {
+                        SharedData.getInstance().setOnline(false);
                         chatClient.offline();
                     } catch (InterruptedException e1)
                     {

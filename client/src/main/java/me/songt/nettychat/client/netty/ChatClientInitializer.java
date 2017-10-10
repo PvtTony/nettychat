@@ -5,6 +5,11 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.timeout.IdleStateHandler;
+
+import java.util.concurrent.TimeUnit;
+
+import static me.songt.nettychat.client.netty.ChatClient.WRITE_WAIT_SECONDS;
 
 public class ChatClientInitializer extends ChannelInitializer<Channel>
 {
@@ -22,6 +27,7 @@ public class ChatClientInitializer extends ChannelInitializer<Channel>
         ChannelPipeline channelPipeline = channel.pipeline();
         channelPipeline.addLast("decoder", new StringDecoder());
         channelPipeline.addLast("encoder", new StringEncoder());
+        channelPipeline.addLast("ping", new IdleStateHandler(0, WRITE_WAIT_SECONDS, 0, TimeUnit.SECONDS));
         channelPipeline.addLast("handler", new ClientMessageHandler(nickName));
     }
 }

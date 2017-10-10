@@ -7,8 +7,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.oio.OioEventLoopGroup;
+import io.netty.channel.socket.oio.OioSocketChannel;
 import io.netty.util.CharsetUtil;
 import me.songt.nettychat.Constants;
 import me.songt.nettychat.client.proc.SharedData;
@@ -23,10 +23,15 @@ public class ChatClient
     private final String host;
     private final int port;
     private final String nickName;
-    private EventLoopGroup group = new NioEventLoopGroup();
+    private EventLoopGroup group = new OioEventLoopGroup();
     private Channel channel;
     private ChannelFuture future;
-    Gson gson = new Gson();
+
+    public static final int MAX_UNRECV_PONG_COUNT = 4;
+    public static final int WRITE_WAIT_SECONDS = 5;
+    public static final int RECONN_WAIT_SECONDS = 5;
+
+    private Gson gson = new Gson();
 
     public ChatClient(String host, int port, String nickName)
     {
@@ -35,16 +40,15 @@ public class ChatClient
         this.nickName = nickName;
     }
 
-    public ChannelFuture start() throws InterruptedException, ConnectException
+    public void start() throws InterruptedException, ConnectException
     {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group)
-                .channel(NioSocketChannel.class)
+                .channel(OioSocketChannel.class)
                 .remoteAddress(new InetSocketAddress(host, port))
                 .handler(new ChatClientInitializer(nickName));
         future = bootstrap.connect().sync();
         channel = future.channel();
-        return future;
     }
 
     public void close()
@@ -83,6 +87,7 @@ public class ChatClient
 
     public void offline() throws InterruptedException
     {
+        SharedData.getInstance().setOnline(false);
         Message message = new Message();
         message.setFrom(nickName);
         message.setTo(Constants.BROADCAST_MESSAGE);

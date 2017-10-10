@@ -15,6 +15,10 @@ public class ChatServer
     private int serverPort = 8009;
     private Logger logger = LoggerFactory.getLogger(ChatServer.class);
 
+    public static final int READ_WAIT_SECONDS = 6;
+    public static final int MAX_UNREPLY_COUNT = 4;
+
+
     public ChatServer(int serverPort)
     {
         this.serverPort = serverPort;
