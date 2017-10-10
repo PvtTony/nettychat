@@ -1,9 +1,9 @@
 package me.songt.nettychat.client.view;
 
+import me.songt.nettychat.client.model.SharedData;
 import me.songt.nettychat.client.netty.ChatClient;
 import me.songt.nettychat.client.proc.IncomeProc;
 import me.songt.nettychat.client.proc.OutgoProc;
-import me.songt.nettychat.client.proc.SharedData;
 import me.songt.nettychat.entity.Message;
 
 import javax.swing.*;

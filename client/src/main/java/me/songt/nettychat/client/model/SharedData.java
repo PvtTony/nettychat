@@ -1,4 +1,4 @@
-package me.songt.nettychat.client.proc;
+package me.songt.nettychat.client.model;
 
 import me.songt.nettychat.entity.Message;
 

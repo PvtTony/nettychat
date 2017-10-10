@@ -1,4 +1,4 @@
-package me.songt.nettychat.server;
+package me.songt.nettychat.server.model;
 
 import io.netty.channel.ChannelId;
 

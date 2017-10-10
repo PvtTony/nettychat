@@ -7,7 +7,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.CharsetUtil;
 import me.songt.nettychat.Constants;
-import me.songt.nettychat.client.proc.SharedData;
+import me.songt.nettychat.client.model.SharedData;
 import me.songt.nettychat.entity.Message;
 
 import java.util.concurrent.BlockingQueue;
@@ -81,16 +81,25 @@ public class ClientMessageHandler extends SimpleChannelInboundHandler<String>
                         ping.setFrom(nickName);
                         ping.setTo(Constants.BROADCAST_MESSAGE);
                         ping.setContent(Constants.BOARDCAST_PING_CONTENT);
-                        ctx.channel().writeAndFlush(Unpooled.copiedBuffer(gson.toJson(ping), CharsetUtil.UTF_8));
+                        SharedData.getInstance().getOutgoMessageQueue().put(ping);
                         unRecvPongCount++;
                     }
                     else
                     {
                         System.out.println("Too much unreceived pong! disconnected.");
                         ctx.channel().close();
+                        SharedData.getInstance().setOnline(false);
                     }
             }
         }
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception
+    {
+        super.channelInactive(ctx);
+        SharedData.getInstance().setOnline(false);
+        System.out.println("Channel deactivated.");
     }
 
     @Override

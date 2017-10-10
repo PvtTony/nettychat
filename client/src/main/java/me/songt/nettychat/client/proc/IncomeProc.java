@@ -3,6 +3,7 @@ package me.songt.nettychat.client.proc;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import me.songt.nettychat.Constants;
+import me.songt.nettychat.client.model.SharedData;
 import me.songt.nettychat.client.netty.ChatClient;
 import me.songt.nettychat.client.view.ChatWindow;
 import me.songt.nettychat.entity.Message;

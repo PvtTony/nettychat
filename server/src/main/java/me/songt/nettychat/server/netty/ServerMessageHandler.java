@@ -9,8 +9,8 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.CharsetUtil;
 import me.songt.nettychat.Constants;
 import me.songt.nettychat.entity.Message;
-import me.songt.nettychat.server.OnlineUsers;
-import me.songt.nettychat.server.SharedData;
+import me.songt.nettychat.server.model.OnlineUsers;
+import me.songt.nettychat.server.model.SharedData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

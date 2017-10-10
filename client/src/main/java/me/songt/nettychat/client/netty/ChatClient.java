@@ -11,7 +11,7 @@ import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.oio.OioSocketChannel;
 import io.netty.util.CharsetUtil;
 import me.songt.nettychat.Constants;
-import me.songt.nettychat.client.proc.SharedData;
+import me.songt.nettychat.client.model.SharedData;
 import me.songt.nettychat.entity.Message;
 
 import java.net.ConnectException;
@@ -92,7 +92,10 @@ public class ChatClient
         message.setFrom(nickName);
         message.setTo(Constants.BROADCAST_MESSAGE);
         message.setContent(Constants.BOARDCAST_OFFLINE_CONTENT);
-        channel.writeAndFlush(Unpooled.copiedBuffer(gson.toJson(message), CharsetUtil.UTF_8)).addListener(ChannelFutureListener.CLOSE);
+        if (this.isConnectionActive() && SharedData.getInstance().isOnline())
+        {
+            channel.writeAndFlush(Unpooled.copiedBuffer(gson.toJson(message), CharsetUtil.UTF_8)).addListener(ChannelFutureListener.CLOSE);
+        }
     }
 
     public void listOnlineUser() throws InterruptedException
